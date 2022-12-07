@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm
+from forms import UserAddForm, LoginForm, MessageForm, EditUserForm
 from models import db, connect_db, User, Message
 
 import pdb
@@ -116,7 +116,7 @@ def logout():
     """Handle logout of user."""
 
     # IMPLEMENT THIS
-    session.pop(CURR_USER_KEY)
+    do_logout()
     flash('Goodbye!')
     return redirect('/login')
 
@@ -211,11 +211,29 @@ def stop_following(follow_id):
     return redirect(f"/users/{g.user.id}/following")
 
 
-@app.route('/users/profile', methods=["GET", "POST"])
-def profile():
+@app.route('/users/profile/<int:user_id>', methods=["GET", "POST"])
+def profile(user_id):
     """Update profile for current user."""
-
+    form = EditUserForm()
+    user = User.query.get_or_404(user_id)
     # IMPLEMENT THIS
+    if CURR_USER_KEY in session:
+        if form.validate_on_submit():
+            user.username=form.username.data
+            user.email=form.email.data
+            user.image_url=form.image_url.data
+            user.header_image_url=form.header_image_url.data
+            user.bio=form.bio.data
+            user = User.authenticate(form.username.data,
+                                 form.password.data)
+            if user:
+                db.session.commit()
+                return redirect(f'/users/{user_id}')
+            else:
+                flash('Incorrect password')
+                return redirect('/')
+    
+    return render_template('users/edit.html', form=form)
 
 
 @app.route('/users/delete', methods=["POST"])
