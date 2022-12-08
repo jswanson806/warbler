@@ -31,11 +31,18 @@ connect_db(app)
 ##############################################################################
 # User signup/login/logout
 
+# The logged in user is being kept track of via the CURR_USER_KEY stored in the session which is a reference to the user.id and is set via the do_login() function.
+
+# The function add_user_to_g() will execute before any request is made. That is the purpose of the @app.before_request decorator.
+
+# The g object is a namespace object used as a proxy to another object to store data during an application context. This is helpful for storing resources during a request. In the case of this app, the current user in the session is being added to g.user.
+
+# This function is checking for a user key stored in the session. If it is found, we use the key to query the user and save the user to g.user. This allows for an easy way to check if a user is logged in via conditional logic in our view functions.
 
 @app.before_request
 def add_user_to_g():
     """If we're logged in, add curr user to Flask global."""
-    
+
     if CURR_USER_KEY in session:
         g.user = User.query.get(session[CURR_USER_KEY])
 
@@ -313,10 +320,11 @@ def homepage():
     - anon users: no messages
     - logged in: 100 most recent messages of followed_users
     """
+    # 
     following = []
     for user in g.user.following:
         following.append(user.id)
-    print('##############################', following)
+
     if g.user:
         messages = (Message
                     .query
