@@ -222,6 +222,11 @@ def stop_following(follow_id):
 @app.route('/users/profile/<int:user_id>', methods=["GET", "POST"])
 def profile(user_id):
     """Update profile for current user."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+        
     form = EditUserForm()
     user = User.query.get_or_404(user_id)
     # IMPLEMENT THIS
@@ -242,6 +247,45 @@ def profile(user_id):
                 return redirect('/')
     
     return render_template('users/edit.html', form=form)
+
+@app.route('/users/add_like/<int:msg_id>', methods=["POST"])
+def add_likes(msg_id):
+    """Add likes to messages."""
+
+    if not g.user:
+        flash("Login to like messages.", "danger")
+        return redirect("/")
+
+    msg = Message.query.get_or_404(msg_id)
+    # prevent user from liking their own messages
+    if msg.user.id != g.user.id:
+        g.user.likes.append(msg)
+        db.session.commit()
+        return redirect(f'/users/{g.user.id}')
+    else:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+@app.route('/users/<int:user_id>/likes')
+def show_likes(user_id):
+    """Show all liked messages."""
+
+    if not g.user:
+        flash("Login to like messages.", "danger")
+        return redirect("/")
+    likes = []
+    for like in g.user.likes:
+        likes.append(like.id)
+    # snagging messages in order from the database;
+    # user.messages won't be in order by default
+    messages = (Message
+                .query
+                .filter(Message.id.in_(likes))
+                .order_by(Message.timestamp.desc())
+                .limit(100)
+                .all())
+    user = User.query.get_or_404(user_id)
+    return render_template('users/likes.html', messages=messages, user=user)
 
 
 @app.route('/users/delete', methods=["POST"])
