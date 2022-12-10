@@ -242,6 +242,7 @@ def profile(user_id):
                 user.header_image_url=form.header_image_url.data
             else:
                 user.header_image_url= "/static/images/warbler-hero.jpg"
+            user.location=form.location.data
             user.bio=form.bio.data
             user = User.authenticate(form.username.data,
                                  form.password.data)
