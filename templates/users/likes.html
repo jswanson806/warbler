@@ -17,10 +17,10 @@
             <span class="text-muted">{{ message.timestamp.strftime('%d %B %Y') }}</span>
             <p>{{ message.text }}</p>
           </div>
-          <form method="POST" action="/users/add_like/{{ message.id }}" id="messages-form">
+          <form method="POST" action="/users/remove_like/{{ message.id }}" id="messages-form">
             <button class="btn btn-sm btn-primary"
             >
-              <i class="fa-solid fa-star"></i> 
+              <i class="{{'fa fa-thumbs-up' if message.id in likes else 'fa fa-solid fa-star'}}"></i> 
             </button>
           </form>
         </li>

@@ -234,8 +234,14 @@ def profile(user_id):
         if form.validate_on_submit():
             user.username=form.username.data
             user.email=form.email.data
-            user.image_url=form.image_url.data
-            user.header_image_url=form.header_image_url.data
+            if form.image_url.data:
+                user.image_url=form.image_url.data
+            else:
+                user.image_url="/static/images/default-pic.png"
+            if form.header_image_url.data:
+                user.header_image_url=form.header_image_url.data
+            else:
+                user.header_image_url= "/static/images/warbler-hero.jpg"
             user.bio=form.bio.data
             user = User.authenticate(form.username.data,
                                  form.password.data)
@@ -261,10 +267,25 @@ def add_likes(msg_id):
     if msg.user.id != g.user.id:
         g.user.likes.append(msg)
         db.session.commit()
-        return redirect(f'/users/{g.user.id}')
+        return redirect("/")
     else:
         flash("Access unauthorized.", "danger")
         return redirect("/")
+
+@app.route('/users/remove_like/<int:msg_id>', methods=["POST"])
+def remove_likes(msg_id):
+    """Remove likes from messages."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    msg = Message.query.get_or_404(msg_id)
+   
+    g.user.likes.remove(msg)
+    db.session.commit()
+    return redirect("/")
+ 
 
 @app.route('/users/<int:user_id>/likes')
 def show_likes(user_id):
@@ -284,8 +305,10 @@ def show_likes(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
+    for message in messages:
+        print('#######################################', message)
     user = User.query.get_or_404(user_id)
-    return render_template('users/likes.html', messages=messages, user=user)
+    return render_template('users/likes.html', messages=messages, user=user, likes=likes)
 
 
 @app.route('/users/delete', methods=["POST"])
@@ -369,16 +392,20 @@ def homepage():
     for user in g.user.following:
         following.append(user.id)
 
+    likes = []
+    for like in g.user.likes:
+        likes.append(like.id)
+
     if g.user:
         messages = (Message
                     .query
-                    # this is not working!
                     .filter(or_(Message.user_id==g.user.id, Message.user_id.in_(following)))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
+        
 
-        return render_template('home.html', messages=messages)
+        return render_template('home.html', messages=messages, likes=likes)
 
     else:
         return render_template('home-anon.html')
