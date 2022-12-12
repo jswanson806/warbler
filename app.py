@@ -260,7 +260,7 @@ def add_likes(msg_id):
     """Add likes to messages."""
 
     if not g.user:
-        flash("Login to like messages.", "danger")
+        flash("Access unauthorized.", "danger")
         return redirect("/")
 
     msg = Message.query.get_or_404(msg_id)
@@ -295,6 +295,7 @@ def show_likes(user_id):
     if not g.user:
         flash("Login to like messages.", "danger")
         return redirect("/")
+
     likes = []
     for like in g.user.likes:
         likes.append(like.id)
@@ -306,8 +307,6 @@ def show_likes(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
-    for message in messages:
-        print('#######################################', message)
     user = User.query.get_or_404(user_id)
     return render_template('users/likes.html', messages=messages, user=user, likes=likes)
 
@@ -358,7 +357,7 @@ def messages_add():
 def messages_show(message_id):
     """Show a message."""
 
-    msg = Message.query.get(message_id)
+    msg = Message.query.get_or_404(message_id)
     return render_template('messages/show.html', message=msg)
 
 
@@ -370,7 +369,12 @@ def messages_destroy(message_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    msg = Message.query.get(message_id)
+    msg = Message.query.get_or_404(message_id)
+    
+    if msg.user_id != g.user.id:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
     db.session.delete(msg)
     db.session.commit()
 
@@ -389,15 +393,17 @@ def homepage():
     - logged in: 100 most recent messages of followed_users
     """
     # 
-    following = []
-    for user in g.user.following:
-        following.append(user.id)
 
-    likes = []
-    for like in g.user.likes:
-        likes.append(like.id)
 
     if g.user:
+    
+        following = []
+        for user in g.user.following:
+            following.append(user.id)
+
+        likes = []
+        for like in g.user.likes:
+            likes.append(like.id)
         messages = (Message
                     .query
                     .filter(or_(Message.user_id==g.user.id, Message.user_id.in_(following)))
